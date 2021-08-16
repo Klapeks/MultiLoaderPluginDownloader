@@ -3,7 +3,9 @@ package com.klapeks.mlpd.bukkit;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -18,7 +20,7 @@ public class BukkitPluginList {
 	public static boolean DISABLE_BUKKIT_ON_PLUGIN_ERROR = false;
 	
 	public static boolean isStartup = false;
-	public static List<Plugin> needsToBeEnabled = new ArrayList<>();
+	public static Map<String, Plugin> needsToBeEnabled = new HashMap<>();
 	
 	static final String fs = File.separator;
 	
@@ -63,9 +65,10 @@ public class BukkitPluginList {
 		}
 	}
 	public static void __init2__() {
-		for (Plugin pl : needsToBeEnabled) {
+		for (String folder$pl : needsToBeEnabled.keySet()) {
 			try {
-				org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(pl);
+				org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(needsToBeEnabled.get(folder$pl));
+				MLPD._addEnabled(folder$pl.split(",,,")[0], folder$pl.split(",,,")[1]);
 			} catch (Throwable t) {
 				if (DISABLE_BUKKIT_ON_PLUGIN_ERROR) {
 					Bukkit.shutdown();

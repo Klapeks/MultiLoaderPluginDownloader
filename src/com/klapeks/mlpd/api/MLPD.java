@@ -28,9 +28,15 @@ public class MLPD {
 	public static boolean hasFolder(String folder) {
 		return (send("checkfolder", folder)+"").equals("true");
 	}
-	
+
+	static uArrayMap<String, String> pluginenabled = new uArrayMap<>();
+	public static void _addEnabled(String folder, String plugin) {
+		pluginenabled.addIn(folder, plugin);
+	}
+	public static boolean _isEnabled(String folder, String plugin) {
+		return pluginenabled.containsKey(folder) && pluginenabled.get(folder).contains(plugin);
+	}
 	public static class PluginFolder {
-		
 //		private Plugin getPlugin(String plugin) {
 //			File file = new File("plugins_MLPD" + File.separator + folder + File.separator + plugin + ".jar");
 //			if (file.exists()) {
@@ -49,7 +55,15 @@ public class MLPD {
 			this.folder = folder.replace(File.separator, "/");
 		}
 		
+		public boolean localContains(String plugin) {
+			return new File("plugins_MLPD" + File.separator + folder + File.separator + plugin + ".jar").exists();
+		}
+		
 		public PluginFolder using(String plugin) {
+			if (_isEnabled(folder, plugin)) {
+				lFunctions.log("§6Plugin '{plugin}' is already enabled and will not be enabled again".replace("{plugin}", plugin));
+				return this;
+			}
 			try {
 				if (has(plugin) && checkNewVersion(plugin)) {
 					download(plugin);
@@ -63,8 +77,9 @@ public class MLPD {
 				pl.onLoad();
 				if (!BukkitPluginList.isStartup) {
 					org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(pl);
+					_addEnabled(folder, plugin);
 				} else {
-					BukkitPluginList.needsToBeEnabled.add(pl);
+					BukkitPluginList.needsToBeEnabled.put(folder+",,,"+plugin, pl);
 				}
 			} catch (Throwable t) {
 				if (BukkitPluginList.DISABLE_BUKKIT_ON_PLUGIN_ERROR) {
