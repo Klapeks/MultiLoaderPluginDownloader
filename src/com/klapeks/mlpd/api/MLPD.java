@@ -2,6 +2,7 @@ package com.klapeks.mlpd.api;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.HashMap;
 
 import org.bukkit.Bukkit;
 
@@ -67,13 +68,15 @@ public class MLPD {
 			try {
 				if (has(plugin) && checkNewVersion(plugin)) {
 					download(plugin);
-				} 
+				} else {
+					lFunctions.log("§aThe latest version of '{plugin}' is already installed".replace("{plugin}", plugin));
+				}
 			} catch (Throwable t) {
 				t.printStackTrace();
 			}
 			try {//Trying load and enable plugin
 				org.bukkit.plugin.Plugin pl = org.bukkit.Bukkit.getServer().getPluginManager().loadPlugin(
-						new File("plugins_MLPD" + File.separator + folder + File.separator + plugin + ".jar"));
+						new File("plugins_MLPD" + File.separator + folder.replace("/", File.separator) + File.separator + plugin + ".jar"));
 				pl.onLoad();
 				if (!BukkitPluginList.isStartup) {
 					org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(pl);
@@ -125,7 +128,7 @@ public class MLPD {
 			}
 			secretPsw = secretPsw.replaceFirst(secretPsw.split(" ")[0]+" ", "");
 			
-			File file = new File("plugins_MLPD" + File.separator + folder + File.separator + plugin + ".jar");
+			File file = new File("plugins_MLPD" + File.separator + folder.replace("/", File.separator) + File.separator + plugin.replace("/", File.separator) + ".jar");
 			try {//Downloading plugin
 				if (file.exists()) file.delete();
 				file.getParentFile().mkdirs();
@@ -160,9 +163,30 @@ public class MLPD {
 			return this;
 		}
 
+
+		//FOLDER WITH CONFIGURATION
+		public PluginFolder using_cfgs_async(String folder_with_configs) {
+			dFunctions.scheduleAsync(new Runnable() {
+				@Override
+				public void run() {
+					using_cfgs(folder_with_configs);
+				}
+			}, 0);
+			return this;
+		}
 		
+		public PluginFolder download_cfgs_async(String folder_with_configs) {
+			dFunctions.scheduleAsync(new Runnable() {
+				@Override
+				public void run() {
+					download_cfgs(folder_with_configs);
+				}
+			}, 0);
+			return this;
+		}
 		public boolean checkNewVersion(String plugin) {
-			File file = new File("plugins_MLPD" + File.separator + folder + File.separator + plugin + ".jar");
+			File file = new File("plugins_MLPD" + File.separator + folder.replace("/", File.separator) + File.separator + plugin + ".jar");
+			if (!file.exists()) return true;
 			return lFunctions.toLong(send("getpluginlastmodified", folder, plugin)) - file.lastModified() >= 1000;
 //			return (send("checkpluginnewversion", folder, plugin, (file.exists() ? file.lastModified() : -1)+"")+"").equals("true");
 		}
@@ -170,7 +194,100 @@ public class MLPD {
 		public boolean has(String plugin) {
 			return (send("checkplugin", folder, plugin)+"").equals("true");
 		}
+
 		
+		public PluginFolder using_cfgs(String folder_with_configs) {
+			if (!has_cfgs(folder_with_configs)) {
+				lFunctions.log("§cFolder with configs §6'{folder_with_configs}'§c wasn't found!".replace("{folder_with_configs}", folder_with_configs));
+				return this;
+			}
+			String[] path$file = (send("getconfiglistoffolder", folder, folder_with_configs)+"").split(",,,,,");
+			for (String config : path$file) {
+				if (checkConfigNewVersion(folder_with_configs, config)) {
+					download_cfg_file(folder_with_configs, config);
+				}
+			}
+			return this;
+		}
+		
+		public PluginFolder download_cfgs(String folder_with_configs) {
+			if (!has_cfgs(folder_with_configs)) {
+				lFunctions.log("§cFolder with configs §6'{folder_with_configs}'§c wasn't found!".replace("{folder_with_configs}", folder_with_configs));
+				return this;
+			}
+			String[] path$file = (send("getconfiglistoffolder", folder, folder_with_configs)+"").split(",,,,,");
+			for (String config : path$file) {
+//				lFunctions.log("§eConfig: " + folder_with_configs + "  -   " + config);
+				download_cfg_file(folder_with_configs, config);
+			}
+			return this;
+		}
+		
+		public PluginFolder download_cfg_file(String folder_with_configs, String config) {
+			if (!has_cfg_file(folder_with_configs, config)) {
+				lFunctions.log("§cConfig §6'{config}'§c in §6{folder_with_configs}§c wasn't found!".replace("{config}", config).replace("{folder_with_configs}", folder_with_configs));
+				return this;
+			}
+			//Prepare to config downloading
+			String secretPsw = sendLarge("startdownloadconfig", folder, folder_with_configs, config);
+			int size = lFunctions.toInt(secretPsw.split(" ")[0]);
+			if (secretPsw.equals("-1") || size==-1) {
+				closeLarge();
+				lFunctions.log("§cConfig §6'{config}'§c was found but no?".replace("{config}", folder_with_configs+"/"+config));
+				return this;
+			}
+			secretPsw = secretPsw.replaceFirst(secretPsw.split(" ")[0]+" ", "");
+			
+			File file = new File("plugins_MLPD" + File.separator + folder.replace("/", File.separator) + File.separator + folder_with_configs.replace("/", File.separator) + File.separator + config.replace("/", File.separator));
+			try {//Downloading config
+				if (file.exists()) file.delete();
+				file.getParentFile().mkdirs();
+				String g = "";
+				int old_proc = 0, new_one = 0;
+				
+				for (int i = 0; i < size; i++) {
+					g = sendLarge("downloadconfigstage", secretPsw, i+"");
+					if (g==null || g.equals("null")) {
+						lFunctions.log("§cSomething went wrong. On iterator: " + i);
+						return this;
+					}
+					Files.write(file.toPath(), dRSA.base64_decode_byte(g), 
+							java.nio.file.StandardOpenOption.CREATE,
+							java.nio.file.StandardOpenOption.WRITE,
+							java.nio.file.StandardOpenOption.APPEND);
+					new_one = i*100 / size;
+					if (new_one - old_proc >= 10 || i==0) {
+						lFunctions.log("§6Downloading config '{config}', iterator {i}... ".replace("{config}", folder_with_configs+"/"+config).replace("{i}", i+"") + new_one);
+						old_proc = new_one;
+					}
+				}
+				file.setLastModified(lFunctions.toLong(send("getconfiglastmodified", folder, folder_with_configs, config)));
+				lFunctions.log("§6Config was downloaded");
+			} catch (Throwable t) {
+				lFunctions.log("§cError with config downloading");
+				file.delete();
+				t.printStackTrace();
+			}
+			send("mbneedclearconfigcash", secretPsw);
+			closeLarge();
+			return this;
+		}
+		
+		public boolean has_cfg_file(String folder_with_configs, String config) {
+			return (send("checkconfiginfolderwithconfigs", folder, folder_with_configs, config)+"").equals("true");
+		}
+		
+		public boolean has_cfgs(String folder_with_configs) {
+			return (send("checkfolderwithconfigs", folder, folder_with_configs)+"").equals("true");
+		}
+
+		public boolean checkConfigNewVersion(String folder_with_configs, String config) {
+			File file = new File("plugins_MLPD" + File.separator + folder.replace("/", File.separator) + File.separator + 
+					folder_with_configs.replace("/", File.separator) + File.separator + config.replace("/", File.separator));
+			if (!file.exists()) return true;
+			return lFunctions.toLong(send("getconfiglastmodified", folder, folder_with_configs, config)) - file.lastModified() >= 1000;
+//			return (send("checkpluginnewversion", folder, plugin, (file.exists() ? file.lastModified() : -1)+"")+"").equals("true");
+		}
 	}
 	
 	private static String send(String cmd, String... args) {

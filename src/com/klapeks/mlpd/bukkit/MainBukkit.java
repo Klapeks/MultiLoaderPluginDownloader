@@ -18,6 +18,7 @@ public class MainBukkit extends JavaPlugin {
 	
 	@Override
 	public void onLoad() {
+		BukkitPluginConfigutaion.__init__();
 		BukkitPluginList.__init__();
 	}
 	

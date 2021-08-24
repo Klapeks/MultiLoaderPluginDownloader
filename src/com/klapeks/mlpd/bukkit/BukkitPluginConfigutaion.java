@@ -15,72 +15,57 @@ import org.bukkit.plugin.Plugin;
 import com.klapeks.mlpd.api.MLPD;
 import com.klapeks.mlpd.api.MLPD.PluginFolder;
 
-public class BukkitPluginList {
-	
-	public static boolean DISABLE_BUKKIT_ON_PLUGIN_ERROR = false;
-	
-	public static boolean isStartup = false;
-	public static Map<String, Plugin> needsToBeEnabled = new HashMap<>();
+public class BukkitPluginConfigutaion {
 	
 	static final String fs = File.separator;
 	
+	static boolean autoPluginConfiguration = true;
+	
 	static void __init__() {
 		try {
-			isStartup = true;
-			File file = new File("plugins" + fs + "MultiLoaderPluginDownloader" + fs + "list.yml");
+			File file = new File("plugins" + fs + "MultiLoaderPluginDownloader" + fs + "cfglist.yml");
 			if (!file.exists()) {
 				file.getParentFile().mkdirs();
 				file.createNewFile();
 				FileWriter fw = new FileWriter(file);
-				f(fw, "This is a list of plugins that will be");
-				f(fw, "automatically downloaded if out of date");
+				f(fw, "This is a list of folder with configuration that");
+				f(fw, "will be automatically downloaded if out of date");
 				f(fw);
 				f(fw, "Example:");
 				f(fw);
 				f(fw, "folder1:");
-				f(fw, "- plugin1");
-				f(fw, "- plugin2");
-				f(fw, "- plugin3");
-				f(fw, "- plugin4");
+				f(fw, "- cfg_folder1");
+				f(fw, "- cfg_folder2");
+				f(fw, "- cfg_folder3");
+				f(fw, "- cfg_folder4");
 				f(fw, "folder2:");
-				f(fw, "- plugin5");
-				f(fw, "- plugin6");
-				f(fw, "folder3: [plugin7, plugin8, plugin9]");
+				f(fw, "- cfg_folder5");
+				f(fw, "- cfg_folder6");
+				f(fw, "folder3: [cfg_folder7, cfg_folder8, cfg_folder9]");
+
+				fw.write("\n\n");
+				fw.write("# If true plugin configuration (plugin from list.yml)\n");
+				fw.write("# will be automatically downloaded\n");
+				fw.write("autoPluginConfiguration: true\n");
 				
 				fw.flush();
 				fw.close();
 			}
 			FileConfiguration fc = YamlConfiguration.loadConfiguration(file);
+			autoPluginConfiguration = fc.getBoolean("autoPluginConfiguration");
+			System.out.println(autoPluginConfiguration);
 			for (String folder : fc.getKeys(true)) {
 				if (fc.isList(folder) && MLPD.hasFolder(folder)) {
 					List<?> list = fc.getList(folder);
 					PluginFolder pf = MLPD.from(folder);
-					list.forEach(plugin -> {
-						if (BukkitPluginConfigutaion.autoPluginConfiguration) pf.using_cfgs(plugin+"");
-						pf.using(plugin+"");
+					list.forEach(folder_with_configs -> {
+						pf.using_cfgs(folder_with_configs+"");
 					});
 				}
 			}
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
-	}
-	public static void __init2__() {
-		for (String folder$pl : needsToBeEnabled.keySet()) {
-			try {
-				org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(needsToBeEnabled.get(folder$pl));
-				MLPD._addEnabled(folder$pl.split(",,,")[0], folder$pl.split(",,,")[1]);
-			} catch (Throwable t) {
-				if (DISABLE_BUKKIT_ON_PLUGIN_ERROR) {
-					Bukkit.shutdown();
-					return;
-				}
-				throw new RuntimeException(t);
-			}
-		}
-		isStartup = false;
-		needsToBeEnabled.clear();
-		needsToBeEnabled = null;
 	}
 	static void f(FileWriter fw, String comment) {
 		try {
