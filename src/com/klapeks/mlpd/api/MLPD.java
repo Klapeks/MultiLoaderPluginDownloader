@@ -192,7 +192,6 @@ public class MLPD {
 			doDownload(file, secretPsw, size);
 			file.setLastModified(lFunctions.toLong(send("lastmodified", cf(folder_with_configs, config, subfolder))));
 			send("clearcashdata", secretPsw);
-			closeLarge();
 			return this;
 		}
 		
@@ -231,6 +230,7 @@ public class MLPD {
 					download_config(folder_with_configs, config, subfolder);
 				}
 			}
+			closeLarge();
 			return this;
 		}
 		
@@ -251,6 +251,7 @@ public class MLPD {
 			for (String config : path$file) {
 				download_config(folder_with_configs, config, subfolder);
 			}
+			closeLarge();
 			return this;
 		}
 		
