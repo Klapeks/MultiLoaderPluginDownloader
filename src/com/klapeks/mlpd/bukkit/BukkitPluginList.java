@@ -69,7 +69,7 @@ public class BukkitPluginList {
 								pf.using(plugin+"");
 								return;
 							} else if (par.startsWith("usesubfolder ")) {
-								par = par.substring(7);
+								par = par.substring("usesubfolder ".length());
 								pf.using_cfgs(plugin, par);
 								pf.using(plugin+"");
 								return;
