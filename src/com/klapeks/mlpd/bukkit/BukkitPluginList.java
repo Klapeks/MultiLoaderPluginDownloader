@@ -12,6 +12,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
+import com.klapeks.coserver.aConfig;
 import com.klapeks.mlpd.api.MLPD;
 import com.klapeks.mlpd.api.MLPD.PluginFolder;
 
@@ -40,11 +41,11 @@ public class BukkitPluginList {
 				f(fw, "folder1:");
 				f(fw, "- plugin1");
 				f(fw, "- plugin2");
-				f(fw, "- plugin3");
+				f(fw, "- plugin3 $usesubfolder subfolder1");
 				f(fw, "- plugin4");
 				f(fw, "folder2:");
 				f(fw, "- plugin5");
-				f(fw, "- plugin6");
+				f(fw, "- plugin6 $nocfg");
 				f(fw, "folder3: [plugin7, plugin8, plugin9]");
 				
 				fw.flush();
@@ -55,8 +56,29 @@ public class BukkitPluginList {
 				if (fc.isList(folder) && MLPD.hasFolder(folder)) {
 					List<?> list = fc.getList(folder);
 					PluginFolder pf = MLPD.from(folder);
-					list.forEach(plugin -> {
-						if (BukkitPluginConfigutaion.autoPluginConfiguration) pf.using_cfgs(plugin+"");
+					list.forEach(pl -> {
+						String plugin = pl+"";
+						if (plugin.contains("$")) {
+							String par = plugin.split("\\$")[1];
+							plugin = plugin.split("\\$")[0];
+							if (plugin.endsWith(" ")) {
+								plugin = plugin.substring(0, plugin.length()-1);
+							}
+							if (par.equals("usecfg")) {
+								pf.using_cfgs(plugin, null);
+								pf.using(plugin+"");
+								return;
+							} else if (par.startsWith("usesubfolder ")) {
+								par = par.substring(7);
+								pf.using_cfgs(plugin, par);
+								pf.using(plugin+"");
+								return;
+							} else if (par.equals("nocfg")) {
+								pf.using(plugin);
+								return;
+							}
+						}
+						if (BukkitPluginConfigutaion.autoPluginConfiguration) pf.using_cfgs(plugin, null);
 						pf.using(plugin+"");
 					});
 				}

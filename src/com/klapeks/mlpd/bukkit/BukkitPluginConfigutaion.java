@@ -59,7 +59,7 @@ public class BukkitPluginConfigutaion {
 					List<?> list = fc.getList(folder);
 					PluginFolder pf = MLPD.from(folder);
 					list.forEach(folder_with_configs -> {
-						pf.using_cfgs(folder_with_configs+"");
+						pf.using_cfgs(folder_with_configs+"", null);
 					});
 				}
 			}

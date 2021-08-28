@@ -28,5 +28,4 @@ public class MainBukkit extends JavaPlugin {
 		BukkitPluginList.__init2__();
 	}
 	
-	
 }
