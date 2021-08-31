@@ -1,31 +1,28 @@
 package com.klapeks.mlpd.bukkit;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import com.klapeks.mlpd.api.lFunctions;
 
 public class MainBukkit extends JavaPlugin {
 	
-	static MainBukkit bukkit;
+	private static MLPack plugin = new MLPack();
 	
 	public MainBukkit() {
-		bukkit = this;
-		if (!Bukkit.getVersion().contains("1.8")) {
-			lFunctions.prefix = "§9[§aM§3L§cP§4D§9]§r ";
-		}
+		plugin.init(this);
 	}
 	
 	@Override
 	public void onLoad() {
-		BukkitPluginConfigutaion.__init__();
-		BukkitPluginList.__init__();
+		plugin.load(this);
 	}
-	
 	
 	@Override
 	public void onEnable() {
-		BukkitPluginList.__init2__();
+		plugin.enable(this);
+	}
+	
+	@Override
+	public void onDisable() {
+		plugin.disable(this);
 	}
 	
 }

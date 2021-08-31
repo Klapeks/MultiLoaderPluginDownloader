@@ -71,7 +71,9 @@ public class MLPDServer {
 				String secretPsw = args[1];
 				if (!filedata.containsKey(secretPsw)) return "null";
 				try {
-					return filedata.get(secretPsw).get(dFunctions.toInt(args[2]));
+					String a = filedata.get(secretPsw).get(dFunctions.toInt(args[2]));
+					if (a==null) throw new RuntimeException("a is null :(");
+					return a;
 				} catch (Throwable t) {
 					t.printStackTrace();
 				}
