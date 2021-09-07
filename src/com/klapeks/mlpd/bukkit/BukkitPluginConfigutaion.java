@@ -13,6 +13,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import com.klapeks.mlpd.api.MLPD;
+import com.klapeks.mlpd.api.lFunctions;
 import com.klapeks.mlpd.api.MLPD.PluginFolder;
 
 public class BukkitPluginConfigutaion {
@@ -59,7 +60,14 @@ public class BukkitPluginConfigutaion {
 					List<?> list = fc.getList(folder);
 					PluginFolder pf = MLPD.from(folder);
 					list.forEach(folder_with_configs -> {
-						pf.using_cfgs(folder_with_configs+"", null);
+						String fwc = folder_with_configs+"";
+						if (fwc.contains("$")) {
+							Map<String, String> parameters = lFunctions.getAllParameters(fwc, "$");
+							String redirect = parameters.containsKey("forcecfgbukkitfolder") ? "plugins" : null;
+							pf.using_cfgs(folder_with_configs+"", null, redirect);
+						} else {
+							pf.using_cfgs(folder_with_configs+"", null);
+						}
 					});
 				}
 			}

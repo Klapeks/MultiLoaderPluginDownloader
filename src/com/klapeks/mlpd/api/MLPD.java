@@ -48,7 +48,7 @@ public class MLPD {
 		boolean has_config(String folder_with_configs, String config, @OftenNull String subfolder);
 		boolean local_has_config(String folder_with_configs, String config);
 		boolean hasnewversion_config(String folder_with_configs, String config, @OftenNull String subfolder);
-//		String[] listoffwc(String folder_with_configs, int frac);
+//////		String[] listoffwc(String folder_with_configs, int frac);
 		
 		T using_cfgs(String folder_with_configs, @OftenNull String subfolder);
 		T download_cfgs(String folder_with_configs, @OftenNull String subfolder);
@@ -171,10 +171,46 @@ public class MLPD {
 			return lFunctions.toLong(send("lastmodified", plug(plugin))) - file(folder, plugin+".jar").lastModified() >= 1000;
 		}
 		
+		@Override
+		public boolean has_config(String folder_with_configs, String config, @OftenNull String subfolder) {
+			return (send("isexists", cf(folder_with_configs, config, subfolder))+"").equals("true");
+		}
+
+		@Override
+		public boolean local_has_config(String folder_with_configs, String config) {
+			return file(folder, folder_with_configs, config).exists();
+		}
 		
+		public boolean local_has_config(String folder_with_configs, String config, @OftenNull String redirect) {
+			if (redirect==null) return local_has_config(folder_with_configs, config);
+			return new File(fixPath(redirect, folder_with_configs, config)).exists();
+		}
+
+		@Override
+		public boolean hasnewversion_config(String folder_with_configs, String config, @OftenNull String subfolder) {
+			if (!local_has_config(folder_with_configs, config)) return true;
+			return lFunctions.toLong(send("lastmodified", cf(folder_with_configs, config, subfolder))) - file(folder, folder_with_configs, config).lastModified() >= 1000;
+		}
 		
+		public boolean hasnewversion_config(String folder_with_configs, String config, @OftenNull String subfolder, @OftenNull String redirect) {
+			if (redirect==null) return hasnewversion_config(folder_with_configs, config, subfolder);
+			if (!local_has_config(folder_with_configs, config, redirect)) return true;
+			return lFunctions.toLong(send("lastmodified", cf(folder_with_configs, config, subfolder))) - 
+					new File(fixPath(redirect, folder_with_configs, config)).lastModified() >= 1000;
+		}
 		@Override
 		public PluginFolder download_config(String folder_with_configs, String config, @OftenNull String subfolder) {
+			return download_config(folder_with_configs, config, subfolder, null);
+		}
+		@Override
+		public PluginFolder download_cfgs(String folder_with_configs, @OftenNull String subfolder) {
+			return download_cfgs(folder_with_configs, subfolder, null);
+		}
+		@Override
+		public PluginFolder using_cfgs(String folder_with_configs, @OftenNull String subfolder) {
+			return using_cfgs(folder_with_configs, subfolder, null);
+		}
+		public PluginFolder download_config(String folder_with_configs, String config, @OftenNull String subfolder, @OftenNull String redirect) {
 			if (!has_config(folder_with_configs, config, subfolder)) {
 				lFunctions.log("§cConfig §6'{config}'§c in §6{folder_with_configs}§c wasn't found!".replace("{config}", config).replace("{folder_with_configs}", 
 						folder_with_configs + (subfolder==null?"":("/"+subfolder))));
@@ -188,68 +224,50 @@ public class MLPD {
 				return this;
 			}
 			secretPsw = secretPsw.replaceFirst(secretPsw.split(" ")[0]+" ", "");
-			File file = file(folder, folder_with_configs, config);
+			File file = redirect==null ? file(folder, folder_with_configs, config)
+					: new File(fixPath(redirect, folder_with_configs, config));
 			doDownload(file, secretPsw, size);
 			file.setLastModified(lFunctions.toLong(send("lastmodified", cf(folder_with_configs, config, subfolder))));
 			send("clearcashdata", secretPsw);
 			return this;
 		}
 		
-		@Override
-		public boolean has_config(String folder_with_configs, String config, @OftenNull String subfolder) {
-			return (send("isexists", cf(folder_with_configs, config, subfolder))+"").equals("true");
-		}
-		
-		@Override
-		public boolean local_has_config(String folder_with_configs, String config) {
-			return file(folder, folder_with_configs, config).exists();
-		}
-		
-		@Override
-		public boolean hasnewversion_config(String folder_with_configs, String config, @OftenNull String subfolder) {
-			if (!local_has_config(folder_with_configs, config)) return true;
-			return lFunctions.toLong(send("lastmodified", cf(folder_with_configs, config, subfolder))) - file(folder, folder_with_configs, config).lastModified() >= 1000;
-		}
-		
-		@Override
-		public PluginFolder using_cfgs(String folder_with_configs, @OftenNull String subfolder) {
+		public PluginFolder download_cfgs(String folder_with_configs, @OftenNull String subfolder, @OftenNull String redirect) {
 			if (subfolder==null) {
 				//Trying check _default folder
-				if (has_cfgs(folder_with_configs, "_default")) return using_cfgs(folder_with_configs, "_default");
+				if (has_cfgs(folder_with_configs, "_default")) return download_cfgs(folder_with_configs, "_default", redirect);
 			}
 			if (!has_cfgs(folder_with_configs, subfolder)) {
 				lFunctions.log("§cFolder with configs §6'{folder_with_configs}'§c wasn't found!".replace("{folder_with_configs}", folder_with_configs + (subfolder==null?"":("/"+subfolder))));
 				if (subfolder!=null && !subfolder.equals("_default")) {
-					return using_cfgs(folder_with_configs, "_default");
+					return download_cfgs(folder_with_configs, "_default", redirect);
 				}
 				return this;
 			}
 			String[] path$file = (send("getlistoffiles", fd(folder_with_configs, subfolder))+"").split(",,,,,");
 			for (String config : path$file) {
-				if (hasnewversion_config(folder_with_configs, config, subfolder)) {
-					download_config(folder_with_configs, config, subfolder);
-				}
+				download_config(folder_with_configs, config, subfolder, redirect);
 			}
 			closeLarge();
 			return this;
 		}
-		
-		@Override
-		public PluginFolder download_cfgs(String folder_with_configs, @OftenNull String subfolder) {
+		public PluginFolder using_cfgs(String folder_with_configs, @OftenNull String subfolder, @OftenNull String redirect) {
 			if (subfolder==null) {
 				//Trying check _default folder
-				if (has_cfgs(folder_with_configs, "_default")) return download_cfgs(folder_with_configs, "_default");
+				if (has_cfgs(folder_with_configs, "_default")) return using_cfgs(folder_with_configs, "_default", redirect);
 			}
 			if (!has_cfgs(folder_with_configs, subfolder)) {
 				lFunctions.log("§cFolder with configs §6'{folder_with_configs}'§c wasn't found!".replace("{folder_with_configs}", folder_with_configs + (subfolder==null?"":("/"+subfolder))));
 				if (subfolder!=null && !subfolder.equals("_default")) {
-					return download_cfgs(folder_with_configs, "_default");
+					return using_cfgs(folder_with_configs, "_default", redirect);
 				}
 				return this;
 			}
 			String[] path$file = (send("getlistoffiles", fd(folder_with_configs, subfolder))+"").split(",,,,,");
 			for (String config : path$file) {
-				download_config(folder_with_configs, config, subfolder);
+				if (hasnewversion_config(folder_with_configs, config, subfolder, redirect)) {
+					download_config(folder_with_configs, config, subfolder, redirect);
+				}
 			}
 			closeLarge();
 			return this;
@@ -263,9 +281,13 @@ public class MLPD {
 		public boolean local_has_cfgs(String folder_with_configs) {
 			return file(folder, folder_with_configs).exists();
 		}
+		public boolean local_has_cfgs(String folder_with_configs, String redirect) {
+			if (redirect==null) return local_has_cfgs(folder_with_configs);
+			return new File(fixPath(redirect, folder_with_configs)).exists();
+		}
 		
 		
-		
+
 		private static File file(String... args) {
 			return new File("plugins_MLPD" + File.separator + fixPath(args));
 		}

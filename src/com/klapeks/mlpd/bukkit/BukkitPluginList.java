@@ -14,6 +14,7 @@ import org.bukkit.plugin.Plugin;
 
 import com.klapeks.coserver.aConfig;
 import com.klapeks.mlpd.api.MLPD;
+import com.klapeks.mlpd.api.lFunctions;
 import com.klapeks.mlpd.api.MLPD.PluginFolder;
 
 public class BukkitPluginList {
@@ -58,27 +59,36 @@ public class BukkitPluginList {
 					PluginFolder pf = MLPD.from(folder);
 					list.forEach(pl -> {
 						String plugin = pl+"";
+						boolean usecfg = BukkitPluginConfigutaion.autoPluginConfiguration;
 						if (plugin.contains("$")) {
-							String par = plugin.split("\\$")[1];
+							Map<String, String> parameters = lFunctions.getAllParameters(plugin, "$");
+//							String par = plugin.split("\\$")[1];
 							plugin = plugin.split("\\$")[0];
-							if (plugin.endsWith(" ")) {
-								plugin = plugin.substring(0, plugin.length()-1);
+							if (plugin.endsWith(" ")) plugin = plugin.substring(0, plugin.length()-1);
+							if (parameters.containsKey("usecfg")) {
+								usecfg = true;
+							} else if (parameters.containsKey("nocfg")) {
+								usecfg = false;
 							}
-							if (par.equals("usecfg")) {
-								pf.using_cfgs(plugin, null);
-								pf.using(plugin+"");
-								return;
-							} else if (par.startsWith("usesubfolder ")) {
-								par = par.substring("usesubfolder ".length());
-								pf.using_cfgs(plugin, par);
-								pf.using(plugin+"");
-								return;
-							} else if (par.equals("nocfg")) {
-								pf.using(plugin);
-								return;
+							if (usecfg) {
+								String subfolder = parameters.containsKey("usesubfolder") ? parameters.get("usesubfolder") : null;
+								String redirect = parameters.containsKey("forcecfgbukkitfolder") ? "plugins" : null;
+								pf.using_cfgs(plugin, subfolder, redirect);
 							}
-						}
-						if (BukkitPluginConfigutaion.autoPluginConfiguration) pf.using_cfgs(plugin, null);
+//							if (par.equals("usecfg")) {
+//								pf.using_cfgs(plugin, null);
+//								pf.using(plugin+"");
+//								return;
+//							} else if (par.startsWith("usesubfolder ")) {
+//								par = par.substring("usesubfolder ".length());
+//								pf.using_cfgs(plugin, par);
+//								pf.using(plugin+"");
+//								return;
+//							} else if (par.equals("nocfg")) {
+//								pf.using(plugin);
+//								return;
+//							}
+						} else if (usecfg) pf.using_cfgs(plugin, null);
 						pf.using(plugin+"");
 					});
 				}

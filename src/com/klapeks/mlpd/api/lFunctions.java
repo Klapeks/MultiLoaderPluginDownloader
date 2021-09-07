@@ -1,5 +1,7 @@
 package com.klapeks.mlpd.api;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import com.klapeks.coserver.dFunctions;
@@ -48,5 +50,22 @@ public class lFunctions {
 		ss = _filter_(ss, "-1234567890");
 		if (ss.equals("")) return 0;
 		try {return Long.parseLong(ss);} catch(Throwable e) {return 0;}
+	}
+	public static Map<String, String> getAllParameters(String txt, String sep) {
+		Map<String, String> map = new HashMap<>();
+		if (!txt.contains(sep)) return map;
+		txt = txt.replace(" "+sep, sep);
+		String[] ss = txt.split(sep);
+		if (ss.length==1) ss = txt.split("\\"+sep);
+		ss[0] = null;
+		for (String s : ss) {
+			if (s==null) continue;
+			if (s.contains(" ")) {
+				map.put(s.split(" ")[0], s.substring(s.split(" ")[0].length()+1));
+			} else {
+				map.put(s, null);
+			}
+		}
+		return map;
 	}
 }
