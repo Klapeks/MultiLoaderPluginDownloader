@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.klapeks.coserver.IMLPack;
-import com.klapeks.coserver.dFunctions;
 import com.klapeks.mlpd.api.lFunctions;
 
 public class MLPack implements IMLPack<JavaPlugin> {

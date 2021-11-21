@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import com.klapeks.coserver.aConfig;
 import com.klapeks.coserver.dFunctions;
 
 public class lFunctions {
@@ -11,6 +12,13 @@ public class lFunctions {
 	public static String prefix = "[MLPD] ";
 	public static void log(Object obj) {
 		dFunctions.log_(prefix + obj);
+	}
+	
+	public static void errorDisable() {
+		if (aConfig.shutdownOnError) {
+			log("§cServer will be disabled, to prevent further errors");
+			dFunctions.shutdown();
+		}
 	}
 	
 

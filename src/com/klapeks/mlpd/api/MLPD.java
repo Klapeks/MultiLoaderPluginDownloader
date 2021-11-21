@@ -3,21 +3,21 @@ package com.klapeks.mlpd.api;
 import java.io.File;
 import java.nio.file.Files;
 
-import org.bukkit.Bukkit;
-
 import com.klapeks.coserver.aConfig;
 import com.klapeks.coserver.dCoserver;
 import com.klapeks.coserver.dFunctions;
-import com.klapeks.coserver.dRSA;
+import com.klapeks.funcs.dRSA;
 import com.klapeks.mlpd.bukkit.BukkitPluginList;
 
 public class MLPD {
 	private static PluginFolder nullFolder = new PluginFolder(null) {
 		public PluginFolder download(String plugin) {
 			lFunctions.log("§cPlugin §6'{plugin}'§c can't be downloaded because folder wasn't found!!".replace("{plugin}", plugin));
+			lFunctions.errorDisable();
 			return this;
 		};
 		public boolean has(String plugin) {return false;};
+		public boolean isNullFolder() { return true; }
 	};
 	public static PluginFolder from(String folder) {
 		if (hasFolder(folder)) return new PluginFolder(folder);
@@ -26,7 +26,14 @@ public class MLPD {
 	}
 	
 	public static boolean hasFolder(String folder) {
-		return (send("isexists", folder)+"").equals("true");
+		try {
+			return (send("isexists", folder)+"").equals("true");
+		} catch (Throwable t) {
+			if (aConfig.useDebugMsg) t.printStackTrace();
+			lFunctions.log("§cFolders: Bungeecord is probably disabled now.");
+			lFunctions.errorDisable();
+			return true;
+		}
 	}
 
 	static uArrayMap<String, String> pluginenabled = new uArrayMap<>();
@@ -89,6 +96,7 @@ public class MLPD {
 		}
 		@Override
 		public PluginFolder using(String plugin) {
+			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
 			if (_isEnabled(folder, plugin)) {
 				lFunctions.log("§6Plugin '{plugin}' is already enabled and will not be enabled again".replace("{plugin}", plugin));
 				return this;
@@ -101,6 +109,7 @@ public class MLPD {
 				}
 			} catch (Throwable t) {
 				t.printStackTrace();
+				lFunctions.log("§cSome error with connection");
 			}
 			try {//Trying load and enable plugin
 				org.bukkit.plugin.Plugin pl = org.bukkit.Bukkit.getServer().getPluginManager().loadPlugin(file(folder, plugin+".jar"));
@@ -112,16 +121,14 @@ public class MLPD {
 					BukkitPluginList.needsToBeEnabled.put(folder+",,,"+plugin, pl);
 				}
 			} catch (Throwable t) {
-				if (BukkitPluginList.DISABLE_BUKKIT_ON_PLUGIN_ERROR) {
-					Bukkit.shutdown();
-					return nullFolder;
-				}
+				lFunctions.errorDisable();
 				t.printStackTrace();
 			}
 			return this;
 		}
 		
 		private String plug(String plugin) {
+			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
 			return folder + "/" + plugin.replace(File.separator, "/") + ".jar";
 		}
 		private String fd(String folder_with_configs, @OftenNull String subfolder) {
@@ -133,8 +140,10 @@ public class MLPD {
 		
 		@Override
 		public PluginFolder download(String plugin) {
+			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
 			if (!has(plugin)) {
 				lFunctions.log("§cPlugin §6'{plugin}'§c wasn't found!".replace("{plugin}", plugin));
+				lFunctions.errorDisable();
 				return this;
 			}
 			//Prepare to plugin downloading
@@ -143,6 +152,7 @@ public class MLPD {
 			if (secretPsw.equals("-1") || size==-1) {
 				closeLarge();
 				lFunctions.log("§cPlugin §6'{plugin}'§c was found but no?".replace("{plugin}", plugin));
+				lFunctions.errorDisable();
 				return this;
 			}
 			secretPsw = secretPsw.replaceFirst(secretPsw.split(" ")[0]+" ", "");
@@ -157,23 +167,40 @@ public class MLPD {
 		
 		@Override
 		public boolean has(String plugin) {
-			return (send("isexists", plug(plugin))+"").equals("true");
+			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
+			try {
+				return (send("isexists", plug(plugin))+"").equals("true");
+			} catch (Throwable t) {
+				if (aConfig.useDebugMsg) t.printStackTrace();
+				lFunctions.log("§cPlugins: Bungeecord is probably disabled now.");
+				lFunctions.errorDisable();
+				return false;
+			}
 		}
 		
 		@Override
 		public boolean local_has(String plugin) {
+			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
 			return file(folder, plugin+".jar").exists();
 		}
 		
 		@Override
 		public boolean hasnewversion(String plugin) {
+			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
 			if (!local_has(plugin)) return true;
 			return lFunctions.toLong(send("lastmodified", plug(plugin))) - file(folder, plugin+".jar").lastModified() >= 1000;
 		}
 		
 		@Override
 		public boolean has_config(String folder_with_configs, String config, @OftenNull String subfolder) {
-			return (send("isexists", cf(folder_with_configs, config, subfolder))+"").equals("true");
+			try {
+				return (send("isexists", cf(folder_with_configs, config, subfolder))+"").equals("true");
+			} catch (Throwable t) {
+				if (aConfig.useDebugMsg) t.printStackTrace();
+				lFunctions.log("§cConfigs: Bungeecord is probably disabled now.");
+				lFunctions.errorDisable();
+				return false;
+			}
 		}
 
 		@Override
@@ -221,6 +248,7 @@ public class MLPD {
 			if (secretPsw.equals("-1") || size==-1) {
 				closeLarge();
 				lFunctions.log("§cConfig §6'{config}'§c was found but no?".replace("{config}", folder_with_configs+"/"+config));
+				lFunctions.errorDisable();
 				return this;
 			}
 			secretPsw = secretPsw.replaceFirst(secretPsw.split(" ")[0]+" ", "");
@@ -263,19 +291,32 @@ public class MLPD {
 				}
 				return this;
 			}
-			String[] path$file = (send("getlistoffiles", fd(folder_with_configs, subfolder))+"").split(",,,,,");
-			for (String config : path$file) {
-				if (hasnewversion_config(folder_with_configs, config, subfolder, redirect)) {
-					download_config(folder_with_configs, config, subfolder, redirect);
+			try {
+				String[] path$file = (send("getlistoffiles", fd(folder_with_configs, subfolder))+"").split(",,,,,");
+				for (String config : path$file) {
+					if (hasnewversion_config(folder_with_configs, config, subfolder, redirect)) {
+						download_config(folder_with_configs, config, subfolder, redirect);
+					}
 				}
+				closeLarge();
+			} catch (Throwable t) {
+				if (aConfig.useDebugMsg) t.printStackTrace();
+				lFunctions.log("§cConfigurations: Bungeecord is probably disabled now.");
+				lFunctions.errorDisable();
 			}
-			closeLarge();
 			return this;
 		}
 		
 		@Override
 		public boolean has_cfgs(String folder_with_configs, @OftenNull String subfolder) {
-			return (send("isexists", fd(folder_with_configs, subfolder))+"").equals("true");
+			try {
+				return (send("isexists", fd(folder_with_configs, subfolder))+"").equals("true");
+			} catch (Throwable t) {
+				if (aConfig.useDebugMsg) t.printStackTrace();
+				lFunctions.log("§cConfigurations: Bungeecord is probably disabled now.");
+				lFunctions.errorDisable();
+				return false;
+			}
 		}
 		@Override
 		public boolean local_has_cfgs(String folder_with_configs) {
@@ -332,6 +373,8 @@ public class MLPD {
 				t.printStackTrace();
 			}
 		}
+
+		public boolean isNullFolder() { return false; }
 	}
 	
 	private static String send(String cmd, String... args) {

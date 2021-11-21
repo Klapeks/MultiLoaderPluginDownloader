@@ -2,24 +2,19 @@ package com.klapeks.mlpd.bukkit;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
-import com.klapeks.coserver.aConfig;
 import com.klapeks.mlpd.api.MLPD;
 import com.klapeks.mlpd.api.lFunctions;
 import com.klapeks.mlpd.api.MLPD.PluginFolder;
 
 public class BukkitPluginList {
-	
-	public static boolean DISABLE_BUKKIT_ON_PLUGIN_ERROR = false;
 	
 	public static boolean isStartup = false;
 	public static Map<String, Plugin> needsToBeEnabled = new HashMap<>();
@@ -54,9 +49,10 @@ public class BukkitPluginList {
 			}
 			FileConfiguration fc = YamlConfiguration.loadConfiguration(file);
 			for (String folder : fc.getKeys(true)) {
-				if (fc.isList(folder) && MLPD.hasFolder(folder)) {
+				if (fc.isList(folder)) {
 					List<?> list = fc.getList(folder);
 					PluginFolder pf = MLPD.from(folder);
+					if (pf.isNullFolder()) continue;
 					list.forEach(pl -> {
 						String plugin = pl+"";
 						boolean usecfg = BukkitPluginConfigutaion.autoPluginConfiguration;
@@ -103,10 +99,7 @@ public class BukkitPluginList {
 				org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(needsToBeEnabled.get(folder$pl));
 				MLPD._addEnabled(folder$pl.split(",,,")[0], folder$pl.split(",,,")[1]);
 			} catch (Throwable t) {
-				if (DISABLE_BUKKIT_ON_PLUGIN_ERROR) {
-					Bukkit.shutdown();
-					return;
-				}
+				lFunctions.errorDisable();
 				throw new RuntimeException(t);
 			}
 		}

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileWriter;
 
 import com.klapeks.coserver.IMLPack;
-import com.klapeks.coserver.dFunctions;
 import com.klapeks.mlpd.api.lFunctions;
 
 import net.md_5.bungee.api.plugin.Plugin;

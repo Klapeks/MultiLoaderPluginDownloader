@@ -10,8 +10,8 @@ import java.util.function.Function;
 
 import com.klapeks.coserver.aConfig;
 import com.klapeks.coserver.dFunctions;
-import com.klapeks.coserver.dRSA;
-import com.klapeks.coserver.plugin.bungee.BungeeCoserv;
+import com.klapeks.coserver.plugin.bungee.SuperCoServer;
+import com.klapeks.funcs.dRSA;
 import com.klapeks.mlpd.api.lFunctions;
 
 public class MLPDServer {
@@ -93,9 +93,9 @@ public class MLPDServer {
 			return "404error";
 		};
 		if (aConfig.useSecurity) {
-			BungeeCoserv.addSecurityHandler("multiloaderplugindownloader", minihandler);
+			SuperCoServer.BungeeCoserv.addSecurityHandler("multiloaderplugindownloader", minihandler);
 		} else {
-			BungeeCoserv.addHandler("multiloaderplugindownloader", minihandler);
+			SuperCoServer.BungeeCoserv.addHandler("multiloaderplugindownloader", minihandler);
 		}
 	}
 	
