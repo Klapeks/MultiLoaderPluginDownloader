@@ -3,6 +3,9 @@ package com.klapeks.mlpd.api;
 import java.io.File;
 import java.nio.file.Files;
 
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
+
 import com.klapeks.coserver.aConfig;
 import com.klapeks.coserver.dCoserver;
 import com.klapeks.coserver.dFunctions;
@@ -101,17 +104,12 @@ public class MLPD {
 				lFunctions.log("§6Plugin '{plugin}' is already enabled and will not be enabled again".replace("{plugin}", plugin));
 				return this;
 			}
-			try {
-				if (has(plugin) && hasnewversion(plugin)) {
-					download(plugin);
-				} else {
-					lFunctions.log("§aThe latest version of '{plugin}' is already installed".replace("{plugin}", plugin));
-				}
-			} catch (Throwable t) {
-				t.printStackTrace();
-				lFunctions.log("§cSome error with connection");
-			}
+			update(plugin);
+			return enable(plugin);
+		}
+		public PluginFolder enable(String plugin) {
 			try {//Trying load and enable plugin
+				if (!local_has(plugin)) download(plugin);
 				org.bukkit.plugin.Plugin pl = org.bukkit.Bukkit.getServer().getPluginManager().loadPlugin(file(folder, plugin+".jar"));
 				pl.onLoad();
 				if (!BukkitPluginList.isStartup) {
@@ -123,6 +121,43 @@ public class MLPD {
 			} catch (Throwable t) {
 				lFunctions.errorDisable();
 				t.printStackTrace();
+			}
+			return this;
+		}
+		public PluginFolder disable(String plugin) {
+			return disable(plugin, "plugins_MLPD");
+		}
+		public PluginFolder disable(String plugin, String path) {
+			if (!plugin.endsWith(".jar")) plugin += ".jar";
+			File e = null;
+			if (path.equals("plugins_MLPD")) {
+				e = file(folder, plugin);
+			} else {
+				e = new File(path + File.separator + plugin);
+			}
+			String plname = lFunctions.getPluginName(e);
+			Plugin pl = Bukkit.getPluginManager().getPlugin(plugin);
+			if (pl==null) {
+				lFunctions.log("§cPlugin §6" + plname + "§e(" + plugin + ")§c wasn't found or was disabled before this plugin");
+				return this;
+			}
+			lFunctions.log("§6Disabling §6" + plname + "§e(" + plugin + ")§c...");
+			Bukkit.getServer().getPluginManager().disablePlugin(pl);
+			lFunctions.log("§6Plugin " + plugin + "(" + plname + ")" + "was disabled");
+			return this;
+		}
+		
+		public PluginFolder update(String plugin) {
+			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
+			try {
+				if (has(plugin) && hasnewversion(plugin)) {
+					download(plugin);
+				} else {
+					lFunctions.log("§aThe latest version of '{plugin}' is already installed".replace("{plugin}", plugin));
+				}
+			} catch (Throwable t) {
+				t.printStackTrace();
+				lFunctions.log("§cSome error");
 			}
 			return this;
 		}
@@ -180,8 +215,8 @@ public class MLPD {
 		
 		@Override
 		public boolean local_has(String plugin) {
-			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
-			return file(folder, plugin+".jar").exists();
+			if (!plugin.endsWith(".jar")) plugin+=".jar";
+			return file(folder, plugin).exists();
 		}
 		
 		@Override

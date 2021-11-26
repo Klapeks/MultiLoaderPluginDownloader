@@ -48,6 +48,24 @@ public class BukkitPluginList {
 				fw.close();
 			}
 			FileConfiguration fc = YamlConfiguration.loadConfiguration(file);
+			if (!ConfigBukkit.updateOnEnable) {
+				for (String folder : fc.getKeys(true)) {
+					if (fc.isList(folder)) {
+						List<?> list = fc.getList(folder);
+						PluginFolder pf = MLPD.from(folder);
+						if (pf.isNullFolder()) continue;
+						list.forEach(pl -> {
+							String plugin = pl + "";
+							if (plugin.contains("$")) {
+								plugin = plugin.split("\\$")[0];
+								if (plugin.endsWith(" ")) plugin = plugin.substring(0, plugin.length()-1);
+							}
+							pf.enable(plugin);
+						});
+					}
+				}
+				return;
+			}
 			for (String folder : fc.getKeys(true)) {
 				if (fc.isList(folder)) {
 					List<?> list = fc.getList(folder);
@@ -55,42 +73,62 @@ public class BukkitPluginList {
 					if (pf.isNullFolder()) continue;
 					list.forEach(pl -> {
 						String plugin = pl+"";
-						boolean usecfg = BukkitPluginConfigutaion.autoPluginConfiguration;
+						boolean usecfg = ConfigBukkit.updateConfigsOnEnable;
 						if (plugin.contains("$")) {
 							Map<String, String> parameters = lFunctions.getAllParameters(plugin, "$");
 //							String par = plugin.split("\\$")[1];
 							plugin = plugin.split("\\$")[0];
 							if (plugin.endsWith(" ")) plugin = plugin.substring(0, plugin.length()-1);
-							if (parameters.containsKey("usecfg")) {
-								usecfg = true;
-							} else if (parameters.containsKey("nocfg")) {
-								usecfg = false;
-							}
-							if (usecfg) {
-								String subfolder = parameters.containsKey("usesubfolder") ? parameters.get("usesubfolder") : null;
-								String redirect = parameters.containsKey("forcecfgbukkitfolder") ? "plugins" : null;
-								pf.using_cfgs(plugin, subfolder, redirect);
-							}
-//							if (par.equals("usecfg")) {
-//								pf.using_cfgs(plugin, null);
-//								pf.using(plugin+"");
-//								return;
-//							} else if (par.startsWith("usesubfolder ")) {
-//								par = par.substring("usesubfolder ".length());
-//								pf.using_cfgs(plugin, par);
-//								pf.using(plugin+"");
-//								return;
-//							} else if (par.equals("nocfg")) {
-//								pf.using(plugin);
-//								return;
-//							}
+							__update_config(pf, usecfg, plugin, parameters);
 						} else if (usecfg) pf.using_cfgs(plugin, null);
-						pf.using(plugin+"");
+						pf.using(plugin);
 					});
 				}
 			}
 		} catch (Throwable t) {
 			t.printStackTrace();
+		}
+	}
+	private static void __update_config(PluginFolder pf, boolean usecfg, String plugin, Map<String, String> parameters) {
+		if (parameters.containsKey("usecfg")) {
+			usecfg = true;
+		} else if (parameters.containsKey("nocfg")) {
+			usecfg = false;
+		}
+		if (usecfg) {
+			String subfolder = parameters.containsKey("usesubfolder") ? parameters.get("usesubfolder") : null;
+			String redirect = parameters.containsKey("forcecfgbukkitfolder") ? "plugins" : null;
+			pf.using_cfgs(plugin, subfolder, redirect);
+		}
+	}
+	static void __disable__() {
+		if (!ConfigBukkit.updateOnDisable) return;
+		lFunctions.log("§6Trying to disable all plugins");
+		File file = new File("plugins" + fs + "MultiLoaderPluginDownloader" + fs + "list.yml");
+		FileConfiguration fc = YamlConfiguration.loadConfiguration(file);
+		for (String folder : fc.getKeys(true)) {
+			if (fc.isList(folder)) {
+				List<?> list = fc.getList(folder);
+				PluginFolder pf = MLPD.from(folder);
+				if (pf.isNullFolder()) continue;
+				list.forEach(pl -> {
+					boolean usecfg = ConfigBukkit.updateConfigsOnDisable;
+					String plugin = pl+"";
+					if (plugin.contains("$")) {
+						Map<String, String> parameters = lFunctions.getAllParameters(plugin, "$");
+						plugin = plugin.split("\\$")[0];
+						if (plugin.endsWith(" ")) plugin = plugin.substring(0, plugin.length()-1);
+						pf.disable(plugin);
+						__update_config(pf, usecfg, plugin, parameters);
+					} else if (usecfg) {
+						pf.disable(plugin);
+						pf.using_cfgs(plugin, null);
+					} else {
+						pf.disable(plugin);
+					}
+					pf.update(plugin);
+				});
+			}
 		}
 	}
 	public static void __init2__() {

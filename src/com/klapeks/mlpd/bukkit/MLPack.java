@@ -17,6 +17,7 @@ public class MLPack implements IMLPack<JavaPlugin> {
 
 	@Override
 	public void load(JavaPlugin plugin) {
+		ConfigBukkit.__init();
 		lFunctions.log("§3MultiLoaderPluginDownloader is loading");
 		BukkitPluginConfigutaion.__init__();
 		BukkitPluginList.__init__();
@@ -36,6 +37,8 @@ public class MLPack implements IMLPack<JavaPlugin> {
 	@Override
 	public void disable(JavaPlugin plugin) {
 		lFunctions.log("§cMultiLoaderPluginDownloader is disabling");
+		BukkitPluginList.__disable__();
+		BukkitPluginConfigutaion.__disable__();
 	}
 
 }

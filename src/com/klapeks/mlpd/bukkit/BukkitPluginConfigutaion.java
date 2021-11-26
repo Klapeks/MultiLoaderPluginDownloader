@@ -16,8 +16,6 @@ public class BukkitPluginConfigutaion {
 	
 	static final String fs = File.separator;
 	
-	static boolean autoPluginConfiguration = true;
-	
 	static void __init__() {
 		try {
 			File file = new File("plugins" + fs + "MultiLoaderPluginDownloader" + fs + "cfglist.yml");
@@ -39,7 +37,7 @@ public class BukkitPluginConfigutaion {
 				f(fw, "- cfg_folder5");
 				f(fw, "- cfg_folder6");
 				f(fw, "folder3: [cfg_folder7, cfg_folder8, cfg_folder9]");
-
+				
 				fw.write("\n\n");
 				fw.write("# If true plugin configuration (plugin from list.yml)\n");
 				fw.write("# will be automatically downloaded\n");
@@ -48,9 +46,8 @@ public class BukkitPluginConfigutaion {
 				fw.flush();
 				fw.close();
 			}
+			if (!ConfigBukkit.updateConfigsOnEnable) return;
 			FileConfiguration fc = YamlConfiguration.loadConfiguration(file);
-			autoPluginConfiguration = fc.getBoolean("autoPluginConfiguration");
-			System.out.println(autoPluginConfiguration);
 			for (String folder : fc.getKeys(true)) {
 				if (fc.isList(folder) && MLPD.hasFolder(folder)) {
 					List<?> list = fc.getList(folder);
@@ -69,6 +66,14 @@ public class BukkitPluginConfigutaion {
 			}
 		} catch (Throwable t) {
 			t.printStackTrace();
+		}
+	}
+	static void __disable__() {
+		if (ConfigBukkit.updateConfigsOnDisable) {
+			boolean prev = ConfigBukkit.updateConfigsOnEnable;
+			ConfigBukkit.updateConfigsOnEnable = true;
+			__init__();
+			ConfigBukkit.updateConfigsOnEnable = prev;
 		}
 	}
 	static void f(FileWriter fw, String comment) {

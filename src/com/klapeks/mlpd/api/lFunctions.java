@@ -1,8 +1,13 @@
 package com.klapeks.mlpd.api;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.jar.JarFile;
 
 import com.klapeks.coserver.aConfig;
 import com.klapeks.coserver.dFunctions;
@@ -75,5 +80,36 @@ public class lFunctions {
 			}
 		}
 		return map;
+	}
+	
+	public static String getPluginName(String path) {
+		return getPluginName(new File(path));
+	}
+	
+	public static String getPluginName(File executable) {
+		try {
+			JarFile jar = new JarFile(executable);
+			InputStream fileInputStreamReader = jar.getInputStream(jar.getJarEntry("plugin.yml"));
+			BufferedReader br = new BufferedReader(new InputStreamReader(fileInputStreamReader));
+			String s = null;
+			String name = null;
+			while ((s=br.readLine())!=null) {
+				if (s.startsWith("name:")) {
+					name = s.substring(5);
+					break;
+				}
+			}
+			br.close();
+			fileInputStreamReader.close();
+			jar.close();
+			while (name.startsWith(" ")) name = name.substring(1);
+			while (name.startsWith("\"")) name = name.substring(1);
+			while (name.endsWith("\"")) name = name.substring(0, name.length()-1);
+			while (name.startsWith("'")) name = name.substring(1);
+			while (name.endsWith("'")) name = name.substring(0, name.length()-1);
+			return name;
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
 	}
 }
