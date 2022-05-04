@@ -2,7 +2,7 @@ package com.klapeks.mlpd.bukkit;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +17,8 @@ import com.klapeks.mlpd.api.MLPD.PluginFolder;
 public class BukkitPluginList {
 	
 	public static boolean isStartup = false;
-	public static Map<String, Plugin> needsToBeEnabled = new HashMap<>();
+	public static Map<String, Plugin> needsToBeEnabled1 = new LinkedHashMap<>();
+	public static Map<String, Plugin> needsToBeEnabled2 = new LinkedHashMap<>();
 	
 	static final String fs = File.separator;
 	
@@ -52,7 +53,7 @@ public class BukkitPluginList {
 				for (String folder : fc.getKeys(true)) {
 					if (fc.isList(folder)) {
 						List<?> list = fc.getList(folder);
-						PluginFolder pf = MLPD.from(folder);
+						PluginFolder pf = MLPD.getfolder(folder);
 						if (pf.isNullFolder()) continue;
 						list.forEach(pl -> {
 							String plugin = pl + "";
@@ -69,7 +70,7 @@ public class BukkitPluginList {
 			for (String folder : fc.getKeys(true)) {
 				if (fc.isList(folder)) {
 					List<?> list = fc.getList(folder);
-					PluginFolder pf = MLPD.from(folder);
+					PluginFolder pf = MLPD.getfolder(folder);
 					if (pf.isNullFolder()) continue;
 					list.forEach(pl -> {
 						String plugin = pl+"";
@@ -109,7 +110,7 @@ public class BukkitPluginList {
 		for (String folder : fc.getKeys(true)) {
 			if (fc.isList(folder)) {
 				List<?> list = fc.getList(folder);
-				PluginFolder pf = MLPD.from(folder);
+				PluginFolder pf = MLPD.getfolder(folder);
 				if (pf.isNullFolder()) continue;
 				list.forEach(pl -> {
 					boolean usecfg = ConfigBukkit.updateConfigsOnDisable;
@@ -132,18 +133,23 @@ public class BukkitPluginList {
 		}
 	}
 	public static void __init2__() {
-		for (String folder$pl : needsToBeEnabled.keySet()) {
+		isStartup = false;
+		_doEnable(needsToBeEnabled2);
+		_doEnable(needsToBeEnabled1);
+		needsToBeEnabled1 = null;
+		needsToBeEnabled2 = null;
+	}
+	static void _doEnable(Map<String, Plugin> map) {
+		for (String folder$pl : map.keySet()) {
 			try {
-				org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(needsToBeEnabled.get(folder$pl));
-				MLPD._addEnabled(folder$pl.split(",,,")[0], folder$pl.split(",,,")[1]);
+				org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(map.get(folder$pl));
+				DPLM._addEnabled(folder$pl.split(",,,")[0], folder$pl.split(",,,")[1]);
 			} catch (Throwable t) {
 				lFunctions.errorDisable();
 				throw new RuntimeException(t);
 			}
 		}
-		isStartup = false;
-		needsToBeEnabled.clear();
-		needsToBeEnabled = null;
+		map.clear();
 	}
 	static void f(FileWriter fw, String comment) {
 		try {

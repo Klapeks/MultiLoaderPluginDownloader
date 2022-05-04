@@ -51,7 +51,7 @@ public class BukkitPluginConfigutaion {
 			for (String folder : fc.getKeys(true)) {
 				if (fc.isList(folder) && MLPD.hasFolder(folder)) {
 					List<?> list = fc.getList(folder);
-					PluginFolder pf = MLPD.from(folder);
+					PluginFolder pf = MLPD.getfolder(folder);
 					list.forEach(folder_with_configs -> {
 						String fwc = folder_with_configs+"";
 						if (fwc.contains("$")) {

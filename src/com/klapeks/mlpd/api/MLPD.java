@@ -6,11 +6,12 @@ import java.nio.file.Files;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+import com.klapeks.coserver.Coserver;
 import com.klapeks.coserver.aConfig;
-import com.klapeks.coserver.dCoserver;
-import com.klapeks.coserver.dFunctions;
 import com.klapeks.funcs.dRSA;
 import com.klapeks.mlpd.bukkit.BukkitPluginList;
+import com.klapeks.mlpd.bukkit.DPLM;
+import com.klapeks.mlpd.bukkit.DPLM.IPF;
 
 public class MLPD {
 	private static PluginFolder nullFolder = new PluginFolder(null) {
@@ -27,6 +28,11 @@ public class MLPD {
 		lFunctions.log("§cFolder §6'{folder}'§c wasn't found!".replace("{folder}", folder));
 		return nullFolder;
 	}
+	public static PluginFolder getfolder(String folder) {
+		PluginFolder pf = from(folder);
+		pf.startedfolder = true;
+		return pf;
+	}
 	
 	public static boolean hasFolder(String folder) {
 		try {
@@ -38,60 +44,17 @@ public class MLPD {
 			return true;
 		}
 	}
-
-	static uArrayMap<String, String> pluginenabled = new uArrayMap<>();
-	public static void _addEnabled(String folder, String plugin) {
-		pluginenabled.addIn(folder, plugin);
-	}
-	public static boolean _isEnabled(String folder, String plugin) {
-		return pluginenabled.containsKey(folder) && pluginenabled.get(folder).contains(plugin);
-	}
-	
-	public static interface IPF<T> {
-		T using(String plugin);
-		T download(String plugin);
-		boolean has(String plugin);
-		boolean local_has(String plugin);
-		boolean hasnewversion(String plugin);
-		
-		T download_config(String folder_with_configs, String config, @OftenNull String subfolder);
-		boolean has_config(String folder_with_configs, String config, @OftenNull String subfolder);
-		boolean local_has_config(String folder_with_configs, String config);
-		boolean hasnewversion_config(String folder_with_configs, String config, @OftenNull String subfolder);
-//////		String[] listoffwc(String folder_with_configs, int frac);
-		
-		T using_cfgs(String folder_with_configs, @OftenNull String subfolder);
-		T download_cfgs(String folder_with_configs, @OftenNull String subfolder);
-		boolean has_cfgs(String folder_with_configs, @OftenNull String subfolder);
-		boolean local_has_cfgs(String folder_with_configs);
-		
-		
-		default void async_using(String plugin) {
-			dFunctions.scheduleAsync(new Runnable() {
-				@Override public void run() { using(plugin); }
-			}, 0);
-		}
-		default void async_download(String plugin) {
-			dFunctions.scheduleAsync(new Runnable() {
-				@Override public void run() { download(plugin); }
-			}, 0);
-		}
-		
-		default void async_using_cfgs(String folder_with_configs, @OftenNull String subfolder) {
-			dFunctions.scheduleAsync(new Runnable() {
-				@Override public void run() { using_cfgs(folder_with_configs, subfolder); }
-			}, 0);
-		}
-		default void async_download_cfgs(String folder_with_configs, @OftenNull String subfolder) {
-			dFunctions.scheduleAsync(new Runnable() {
-				@Override public void run() { download_cfgs(folder_with_configs, subfolder); }
-			}, 0);
-		}
-		
-	}
+//	static uArrayMap<String, String> pluginloaded = new uArrayMap<>();
+//	public static void _addLoading(String folder, String plugin) {
+//		pluginloaded.addIn(folder, plugin);
+//	}
+//	public static boolean _isLoading(String folder, String plugin) {
+//		return pluginloaded.containsKey(folder) && pluginenabled.get(folder).contains(plugin);
+//	}
 	
 	public static class PluginFolder implements IPF<PluginFolder> {
-		
+
+		boolean startedfolder = false;
 		String folder;
 		public PluginFolder(String folder) {
 			if (folder==null) return;
@@ -100,7 +63,12 @@ public class MLPD {
 		@Override
 		public PluginFolder using(String plugin) {
 			if (plugin.endsWith(".jar")) plugin = plugin.substring(0, plugin.length()-4);
-			if (_isEnabled(folder, plugin)) {
+			if (DPLM.pluginloading.containsValue(folder, plugin)) {
+				lFunctions.log("§6Plugin '{plugin}' is already loading and will not be loaded again".replace("{plugin}", plugin));
+				return this;
+			}
+			DPLM.pluginloading.addIn(folder, plugin);
+			if (DPLM._isEnabled(folder, plugin)) {
 				lFunctions.log("§6Plugin '{plugin}' is already enabled and will not be enabled again".replace("{plugin}", plugin));
 				return this;
 			}
@@ -113,10 +81,13 @@ public class MLPD {
 				org.bukkit.plugin.Plugin pl = org.bukkit.Bukkit.getServer().getPluginManager().loadPlugin(file(folder, plugin+".jar"));
 				pl.onLoad();
 				if (!BukkitPluginList.isStartup) {
+					lFunctions.log("§aPlugin {plugin} enabling now...".replace("{plugin}", plugin));
 					org.bukkit.Bukkit.getServer().getPluginManager().enablePlugin(pl);
-					_addEnabled(folder, plugin);
+					DPLM._addEnabled(folder, plugin);
+					DPLM.pluginloading.remove(folder, plugin);
 				} else {
-					BukkitPluginList.needsToBeEnabled.put(folder+",,,"+plugin, pl);
+					if (startedfolder) BukkitPluginList.needsToBeEnabled1.put(folder+",,,"+plugin, pl);
+					else BukkitPluginList.needsToBeEnabled2.put(folder+",,,"+plugin, pl);
 				}
 			} catch (Throwable t) {
 				lFunctions.errorDisable();
@@ -182,10 +153,10 @@ public class MLPD {
 				return this;
 			}
 			//Prepare to plugin downloading
-			String secretPsw = sendLarge("startfiledownload", plug(plugin));
+			String secretPsw = send("startfiledownload", plug(plugin));
 			int size = lFunctions.toInt(secretPsw.split(" ")[0]);
 			if (secretPsw.equals("-1") || size==-1) {
-				closeLarge();
+//				closeLarge();
 				lFunctions.log("§cPlugin §6'{plugin}'§c was found but no?".replace("{plugin}", plugin));
 				lFunctions.errorDisable();
 				return this;
@@ -196,7 +167,7 @@ public class MLPD {
 			doDownload(file, secretPsw, size);
 			file.setLastModified(lFunctions.toLong(send("lastmodified", plug(plugin))));
 			send("clearcashdata", secretPsw);
-			closeLarge();
+//			closeLarge();
 			return this;
 		}
 		
@@ -278,10 +249,10 @@ public class MLPD {
 						folder_with_configs + (subfolder==null?"":("/"+subfolder))));
 				return this;
 			}
-			String secretPsw = sendLarge("startfiledownload", cf(folder_with_configs, config, subfolder));
+			String secretPsw = send("startfiledownload", cf(folder_with_configs, config, subfolder));
 			int size = lFunctions.toInt(secretPsw.split(" ")[0]);
 			if (secretPsw.equals("-1") || size==-1) {
-				closeLarge();
+//				closeLarge();
 				lFunctions.log("§cConfig §6'{config}'§c was found but no?".replace("{config}", folder_with_configs+"/"+config));
 				lFunctions.errorDisable();
 				return this;
@@ -311,7 +282,7 @@ public class MLPD {
 			for (String config : path$file) {
 				download_config(folder_with_configs, config, subfolder, redirect);
 			}
-			closeLarge();
+//			closeLarge();
 			return this;
 		}
 		public PluginFolder using_cfgs(String folder_with_configs, @OftenNull String subfolder, @OftenNull String redirect) {
@@ -333,7 +304,7 @@ public class MLPD {
 						download_config(folder_with_configs, config, subfolder, redirect);
 					}
 				}
-				closeLarge();
+//				closeLarge();
 			} catch (Throwable t) {
 				if (aConfig.useDebugMsg) t.printStackTrace();
 				lFunctions.log("§cConfigurations: Bungeecord is probably disabled now.");
@@ -386,7 +357,7 @@ public class MLPD {
 				int old_proc = 0, new_one = 0;
 				
 				for (int i = 0; i < size; i++) {
-					g = sendLarge("downloadstage", secretPsw, i+"");
+					g = send("downloadstage", secretPsw, i+"");
 					if (g==null || g.equals("null")) {
 						lFunctions.log("§cSomething went wrong. On iterator: " + i);
 						return;
@@ -411,31 +382,31 @@ public class MLPD {
 
 		public boolean isNullFolder() { return false; }
 	}
-	
+	static Coserver coserver;
 	private static String send(String cmd, String... args) {
+		if (coserver==null) {
+			coserver = Coserver.newCordServer();
+			coserver.open();
+		}
 		cmd = dRSA.base64_encode(cmd);
 		for (String arg : args) {
 			cmd += " " + dRSA.base64_encode(arg);
 		}
-		if (aConfig.useSecurity) {
-			return dCoserver.securitySend(aConfig.bukkit.ip, aConfig.bukkit.port, "multiloaderplugindownloader " + cmd, false);
-		} else {
-			return dCoserver.send(aConfig.bukkit.ip, aConfig.bukkit.port, "multiloaderplugindownloader " + cmd, false);
-		}
+		return coserver.send(aConfig.useSecurity, "multiloaderplugindownloader " + cmd);
 	}
-	
-	private static String sendLarge(String cmd, String... args) {
-		cmd = dRSA.base64_encode(cmd);
-		for (String arg : args) {
-			cmd += " " + dRSA.base64_encode(arg);
-		}
-		if (aConfig.useSecurity) {
-			return dCoserver.securitySend(aConfig.bukkit.ip, aConfig.bukkit.port, "multiloaderplugindownloader " + cmd, true);
-		} else {
-			return dCoserver.send(aConfig.bukkit.ip, aConfig.bukkit.port, "multiloaderplugindownloader " + cmd, true);
-		}
-	}
-	private static void closeLarge() {
-		dCoserver.closeLarge(aConfig.bukkit.ip, aConfig.bukkit.port);
-	}
+//	
+//	private static String sendLarge(String cmd, String... args) {
+//		cmd = dRSA.base64_encode(cmd);
+//		for (String arg : args) {
+//			cmd += " " + dRSA.base64_encode(arg);
+//		}
+//		if (aConfig.useSecurity) {
+//			return dCoserver.securitySend(aConfig.bukkit.ip, aConfig.bukkit.port, "multiloaderplugindownloader " + cmd, true);
+//		} else {
+//			return dCoserver.send(aConfig.bukkit.ip, aConfig.bukkit.port, "multiloaderplugindownloader " + cmd, true);
+//		}
+//	}
+//	private static void closeLarge() {
+//		dCoserver.closeLarge(aConfig.bukkit.ip, aConfig.bukkit.port);
+//	}
 }

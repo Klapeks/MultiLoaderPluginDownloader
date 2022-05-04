@@ -14,6 +14,8 @@ public class ConfigBukkit {
 	public static boolean updateOnDisable = false;
 	public static boolean updateConfigsOnEnable = true;
 	public static boolean updateConfigsOnDisable = false;
+
+	public static String loadingType = "AFTER_ENABLE";
 	
 	static final String fs = File.separator;
 	
@@ -34,12 +36,22 @@ public class ConfigBukkit {
 			
 			if (fw==null) fw = open(file);
 
+			ConfigBukkit.loadingType = g("loadingType", loadingType, 
+					"AFTER_ENABLE: Plugins will be updated and loaded after the server was enalbed.",
+					"ONLOAD: Plugins will be updated and loaded while server is loading - may cause errors",
+					"!works if 'updateOnEnable' is true"
+					);
+			switch (loadingType) {
+			case "ONLOAD": break;
+			default: loadingType = "AFTER_ENABLE";
+			}
+
 			ConfigBukkit.updateOnEnable = g("updateOnEnable", updateOnEnable, "Plugins will be updated while", "the server is enabling");
 			ConfigBukkit.updateOnDisable = g("updateOnDisable", updateOnDisable, "Plugins will be updated while", "the server is shutting down");
 			ConfigBukkit.updateConfigsOnEnable = g("updateConfigsOnEnable", updateConfigsOnEnable, "Configs will be updated while", "the server is enabling", 
-					"!NOTE: Configs file from 'list.yml' will be", "! updated if 'updateOnEnable' is true too");
+					"!NOTE: Configs file from 'list.yml' will be", "!   updated if 'updateOnEnable' is true too");
 			ConfigBukkit.updateConfigsOnDisable = g("updateConfigsOnDisable", updateConfigsOnDisable, "Configs will be updated while", "the server is shutting down",
-					"!NOTE: Configs file from 'list.yml' will be", "! updated if 'updateOnDisable' is true too");
+					"!NOTE: Configs file from 'list.yml' will be", "!   updated if 'updateOnDisable' is true too");
 			
 			fw.flush();
 			fw.close();
@@ -52,7 +64,7 @@ public class ConfigBukkit {
 		return FileCfgUtils.open(file);
 	}
 	private static <T> T g(String key, T defaultValue, String... comment) {
-		return FileCfgUtils.g(config, fw, key, defaultValue, comment);
+		return FileCfgUtils.get_bk(config, fw, key, defaultValue, comment);
 	}
 //	private static void copyConfig(File to, Function<String, String> placeholders) {
 //		try {

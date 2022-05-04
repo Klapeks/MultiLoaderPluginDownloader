@@ -1,0 +1,7 @@
+bin
+.settings
+.classpath
+.project
+bungee.yml
+plugin.yml
+velocity-plugin.json

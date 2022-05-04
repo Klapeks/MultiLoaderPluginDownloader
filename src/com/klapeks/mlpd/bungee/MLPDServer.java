@@ -15,7 +15,7 @@ import com.klapeks.funcs.dRSA;
 import com.klapeks.mlpd.api.lFunctions;
 
 public class MLPDServer {
-	
+	static File mlpd_folder;
 	static final String fs = File.separator;
 	static final int iqii = 500;
 	static HashMap<String, List<String>> filedata = new HashMap<>();
