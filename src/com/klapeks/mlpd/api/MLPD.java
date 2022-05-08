@@ -385,7 +385,7 @@ public class MLPD {
 	static Coserver coserver;
 	private static String send(String cmd, String... args) {
 		if (coserver==null) {
-			coserver = Coserver.newCordServer();
+			coserver = Coserver.newCordServer(false);
 			coserver.open();
 		}
 		cmd = dRSA.base64_encode(cmd);

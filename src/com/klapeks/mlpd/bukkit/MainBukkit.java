@@ -43,6 +43,7 @@ public class MainBukkit extends JavaPlugin {
 	@Override
 	public void onDisable() {
 		lFunctions.log("§cMultiLoaderPluginDownloader is disabling");
+		lFunctions.onDisable();
 		BukkitPluginList.__disable__();
 		BukkitPluginConfigutaion.__disable__();
 	}

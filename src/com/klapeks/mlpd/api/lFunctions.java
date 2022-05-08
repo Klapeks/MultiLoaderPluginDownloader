@@ -112,4 +112,7 @@ public class lFunctions {
 			throw new RuntimeException(t);
 		}
 	}
+	public static void onDisable() {
+		MLPD.coserver.close();
+	}
 }
